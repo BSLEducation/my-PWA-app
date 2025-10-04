@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <meta name="description" content="Matching Questions PWA">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="MatchingQ">
+    <title>Matching Questions</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <link rel="icon" type="image/png" href="icons/icon-192x192.png">
+<meta name="theme-color" content="#2196f3">
+  </head>
+  <body>
+  <div class="container">
+
+    <!-- Home Page -->
+    <div id="homePage" class="page">
+      <button onclick="goPage('newQuizPage')">New Matching Quiz Set</button>
+      <button onclick="goPage('savedQuizPage')">Saved Quiz Sets</button>
+    </div>
+
+    <!-- New Quiz Page -->
+    <div id="newQuizPage" class="page hidden">
+      <h2>Create New Matching Quiz Set</h2>
+      <textarea id="quizInput" placeholder="Enter pairs: Left,Right (one per line)"></textarea>
+      <br>
+      <button onclick="makeQuiz()">Make Quiz</button>
+      <button onclick="editQuiz()">Edit</button>
+      <button onclick="saveQuiz()">Save</button>
+      <button onclick="importCSV()">Import CSV</button>
+      <button onclick="exportCSV()">Export CSV</button>
+      <br><button onclick="goPage('homePage')">Back</button>
+    </div>
+
+    <!-- Saved Quiz Page -->
+    <div id="savedQuizPage" class="page hidden">
+      <h2>Saved Quiz Sets</h2>
+      <select id="quizList"></select>
+      <br>
+      <button onclick="editSavedQuiz()">Edit</button>
+      <button onclick="saveQuiz()">Save</button>
+      <button onclick="deleteQuiz()">Delete</button>
+      <button onclick="playQuiz()">Play</button>
+      <br><br>
+      <label>Background Image: <input type="file" id="bgImageInput" onchange="setBackgroundImage(event)"></label><br>
+      <label>Background Sound: <input type="file" id="bgSoundInput" onchange="setBackgroundSound(event)"></label><br>
+      <label>Countdown (sec): <input type="number" id="countdownInput" value="30"></label>
+      <br><button onclick="goPage('homePage')">Back</button>
+    </div>
+
+    <!-- Play Quiz Page -->
+    <div id="playPage" class="page hidden">
+      <h2>Play Quiz</h2>
+      <div id="timer"></div>
+      <div class="quiz-container">
+        <div id="leftColumn" class="column"></div>
+        <div id="rightColumn" class="column"></div>
+      </div>
+      <br>
+      <button onclick="togglePause()" id="pauseBtn">Pause</button>
+      <button onclick="backToSaved()">Back</button>
+      <div id="score"></div>
+    </div>
+
+  </div>
+  <script src="script.js"></script>
+  <script>
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(registration => {
+            console.log('ServiceWorker registration successful');
+          })
+          .catch(err => {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+      });
+    }
+
+    // Handle before install prompt
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      console.log('App can be installed');
+      
+      // Optional: Show install button
+      const installButton = document.createElement('button');
+      installButton.textContent = 'Install App';
+      installButton.style.position = 'fixed';
+      installButton.style.bottom = '20px';
+      installButton.style.right = '20px';
+      installButton.style.padding = '10px 20px';
+      installButton.style.backgroundColor = '#4CAF50';
+      installButton.style.color = 'white';
+      installButton.style.border = 'none';
+      installButton.style.borderRadius = '5px';
+      installButton.style.cursor = 'pointer';
+      
+      installButton.addEventListener('click', () => {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(choiceResult => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('User accepted the install prompt');
+          } else {
+            console.log('User dismissed the install prompt');
+          }
+          document.body.removeChild(installButton);
+          deferredPrompt = null;
+        });
+      });
+      
+      document.body.appendChild(installButton);
+    });
+  </script>
+</body>
+</html>
