@@ -3,17 +3,44 @@ let currentQuiz = [];
 let currentPairs = [];
 let timerInterval;
 let audio = null;
+let countdownAudio = null;
+let tapSound = null;
 let timeLeft = 0;
 let paused = false;
+let currentBackgroundImage = null;
+let currentBackgroundSound = null;
+let currentCountdownSound = null;
+
+// Initialize tap sound
+function initTapSound() {
+    tapSound = new Audio('tap.mp3');
+    tapSound.volume = 0.3; // Reduce volume to 30%
+}
+
+// Play tap sound function
+function playTapSound() {
+    if (tapSound) {
+        tapSound.currentTime = 0; // Reset to start
+        tapSound.play().catch(err => console.log('Tap sound play prevented'));
+    }
+}
+
+// Initialize tap sound when page loads
+document.addEventListener('DOMContentLoaded', initTapSound);
 
 function goPage(id) {
+  playTapSound();
   document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
   document.getElementById(id).classList.remove("hidden");
-  if (id === "savedQuizPage") refreshQuizList();
+  if (id === "savedQuizPage") {
+    refreshQuizList();
+    loadSavedSettings();
+  }
 }
 
 // --- New Quiz ---
 function makeQuiz() {
+  playTapSound();
   const lines = document.getElementById("quizInput").value.trim().split("\n");
   currentQuiz = lines.map(l => {
     const [left, right] = l.split(",");
@@ -22,9 +49,11 @@ function makeQuiz() {
   alert("Quiz created. You can Save now.");
 }
 function editQuiz() {
+  playTapSound();
   document.getElementById("quizInput").value = currentQuiz.map(p => `${p.left},${p.right}`).join("\n");
 }
 function saveQuiz() {
+  playTapSound();
   const name = prompt("Enter quiz name:", "Quiz" + Object.keys(quizzes).length);
   if (!name) return;
   quizzes[name] = currentQuiz;
@@ -79,6 +108,7 @@ function editSavedQuiz() {
   goPage("newQuizPage");
 }
 function deleteQuiz() {
+  playTapSound();
   const name = document.getElementById("quizList").value;
   if (!name) return;
   delete quizzes[name];
@@ -88,17 +118,122 @@ function deleteQuiz() {
 function setBackgroundImage(event) {
   const file = event.target.files[0];
   if (file) {
-    document.body.style.backgroundImage = `url(${URL.createObjectURL(file)})`;
+    // Store the file for later saving
+    currentBackgroundImage = file;
+    const url = URL.createObjectURL(file);
+    document.body.style.backgroundImage = `url(${url})`;
     document.body.style.backgroundSize = "cover";
   }
 }
+
 function setBackgroundSound(event) {
   const file = event.target.files[0];
   if (file) {
+    // Store the file for later saving
+    currentBackgroundSound = file;
     if (audio) audio.pause();
-    audio = new Audio(URL.createObjectURL(file));
+    const url = URL.createObjectURL(file);
+    audio = new Audio(url);
     audio.loop = true;
-    audio.play();
+    // Don't play automatically, will play during quiz
+  }
+}
+
+function setCountdownSound(event) {
+  const file = event.target.files[0];
+  if (file) {
+    // Store the file for later saving
+    currentCountdownSound = file;
+    if (countdownAudio) countdownAudio.pause();
+    const url = URL.createObjectURL(file);
+    countdownAudio = new Audio(url);
+    countdownAudio.loop = true;
+  }
+}
+
+async function saveSettings() {
+  playTapSound();
+  try {
+    const settings = {
+      countdown: document.getElementById("countdownInput").value
+    };
+
+    // Convert files to base64 using promises
+    const processFile = async (file) => {
+      return new Promise((resolve, reject) => {
+        if (!file) resolve(null);
+        const reader = new FileReader();
+        reader.onload = e => resolve({
+          data: e.target.result,
+          type: file.type,
+          name: file.name
+        });
+        reader.onerror = e => reject(e);
+        reader.readAsDataURL(file);
+      });
+    };
+
+    // Process all files in parallel
+    const [imageData, soundData, countdownSoundData] = await Promise.all([
+      currentBackgroundImage ? processFile(currentBackgroundImage) : Promise.resolve(null),
+      currentBackgroundSound ? processFile(currentBackgroundSound) : Promise.resolve(null),
+      currentCountdownSound ? processFile(currentCountdownSound) : Promise.resolve(null)
+    ]);
+
+    if (imageData) settings.backgroundImage = imageData;
+    if (soundData) settings.backgroundSound = soundData;
+    if (countdownSoundData) settings.countdownSound = countdownSoundData;
+
+    // Save to localStorage
+    localStorage.setItem("quizSettings", JSON.stringify(settings));
+    alert("Settings saved successfully!");
+  } catch (error) {
+    console.error('Error saving settings:', error);
+    alert("Failed to save settings. Please try again.");
+  }
+}
+
+function loadSavedSettings() {
+  try {
+    const settingsJson = localStorage.getItem("quizSettings");
+    if (!settingsJson) return;
+
+    const settings = JSON.parse(settingsJson);
+    
+    // Restore countdown
+    if (settings.countdown) {
+      document.getElementById("countdownInput").value = settings.countdown;
+    }
+    
+    // Restore background image
+    if (settings.backgroundImage?.data) {
+      document.body.style.backgroundImage = `url(${settings.backgroundImage.data})`;
+      document.body.style.backgroundSize = "cover";
+    }
+    
+    // Setup background sound but don't play
+    if (settings.backgroundSound?.data) {
+      if (audio) {
+        audio.pause();
+        audio = null;
+      }
+      audio = new Audio(settings.backgroundSound.data);
+      audio.loop = true;
+      // Don't play here - will play when quiz starts
+    }
+
+    // Setup countdown sound
+    if (settings.countdownSound?.data) {
+      if (countdownAudio) {
+        countdownAudio.pause();
+        countdownAudio = null;
+      }
+      countdownAudio = new Audio(settings.countdownSound.data);
+      countdownAudio.loop = true;
+    }
+  } catch (error) {
+    console.error('Error loading settings:', error);
+    // Don't alert here as it's not user-initiated
   }
 }
 
@@ -112,6 +247,12 @@ function playQuiz() {
   goPage("playPage");
   renderQuiz();
 
+  // Start background sound if available
+  if (audio) {
+    audio.currentTime = 0; // Reset to beginning
+    audio.play();
+  }
+
   // timer
   timeLeft = parseInt(document.getElementById("countdownInput").value);
   document.getElementById("timer").textContent = `Time: ${timeLeft}`;
@@ -121,9 +262,39 @@ function playQuiz() {
 
 function updateTimer() {
   if (paused) return;
+  
   timeLeft--;
-  document.getElementById("timer").textContent = `Time: ${timeLeft}`;
-  if (timeLeft <= 0) endQuiz();
+  const timerElement = document.getElementById("timer");
+  
+  // Handle last 10 seconds
+  if (timeLeft <= 10) {
+    timerElement.classList.add("warning");
+    timerElement.textContent = timeLeft; // Show only the number for dramatic effect
+    
+    // Start countdown sound at 10 seconds if available
+    if (timeLeft === 10) {
+      if (countdownAudio) {
+        if (audio) audio.pause(); // Pause background music
+        countdownAudio.currentTime = 0;
+        countdownAudio.play();
+      }
+      // Create a persistent timer for mobile devices
+      document.body.style.paddingBottom = '120px'; // Add space for floating timer
+    }
+  } else {
+    timerElement.classList.remove("warning");
+    timerElement.textContent = `Time: ${timeLeft}`;
+    document.body.style.paddingBottom = '0';
+  }
+  
+  if (timeLeft <= 0) {
+    if (countdownAudio) {
+      countdownAudio.pause();
+      countdownAudio.currentTime = 0;
+    }
+    document.body.style.paddingBottom = '0';
+    endQuiz();
+  }
 }
 
 function renderQuiz() {
@@ -159,14 +330,15 @@ let selectedRight = null;
 let matched = []; // store {left,right} chosen by user
 
 function selectItem(div, side) {
+  playTapSound();
   if (side === "left") {
-    if (selectedLeft) selectedLeft.style.background = "#333";
+    if (selectedLeft) selectedLeft.style.background = "rgba(255,255,255,0.1)";
     selectedLeft = div;
-    div.style.background = "#666";
+    div.style.background = "rgba(255,255,255,0.3)";
   } else {
-    if (selectedRight) selectedRight.style.background = "#333";
+    if (selectedRight) selectedRight.style.background = "rgba(255,255,255,0.1)";
     selectedRight = div;
-    div.style.background = "#666";
+    div.style.background = "rgba(255,255,255,0.3)";
   }
   if (selectedLeft && selectedRight) {
     // store user's chosen pair but don't mark correct/wrong yet
@@ -185,6 +357,10 @@ function selectItem(div, side) {
 function endQuiz() {
   clearInterval(timerInterval);
   if (audio) audio.pause();
+  if (countdownAudio) {
+    countdownAudio.pause();
+    countdownAudio.currentTime = 0;
+  }
 
   // Reveal correct/wrong answers
   const leftItems = document.querySelectorAll("#leftColumn .item");
@@ -195,13 +371,13 @@ function endQuiz() {
     const correct = currentPairs.find(p => p.left === choice.left && p.right === choice.right);
     if (correct) {
       score++;
-      // color matched pair green
-      [...leftItems].find(i => i.dataset.value === choice.left).style.background = "green";
-      [...rightItems].find(i => i.dataset.value === choice.right).style.background = "green";
+      // color matched pair green with transparency
+      [...leftItems].find(i => i.dataset.value === choice.left).style.background = "rgba(0,255,0,0.3)";
+      [...rightItems].find(i => i.dataset.value === choice.right).style.background = "rgba(0,255,0,0.3)";
     } else {
-      // wrong pair red
-      [...leftItems].find(i => i.dataset.value === choice.left).style.background = "red";
-      [...rightItems].find(i => i.dataset.value === choice.right).style.background = "red";
+      // wrong pair red with transparency
+      [...leftItems].find(i => i.dataset.value === choice.left).style.background = "rgba(255,0,0,0.3)";
+      [...rightItems].find(i => i.dataset.value === choice.right).style.background = "rgba(255,0,0,0.3)";
     }
   });
 
@@ -209,6 +385,7 @@ function endQuiz() {
 }
 
 function togglePause() {
+  playTapSound();
   paused = !paused;
   document.getElementById("pauseBtn").textContent = paused ? "Resume" : "Pause";
   if (audio) {
@@ -218,6 +395,7 @@ function togglePause() {
 }
 
 function backToSaved() {
+  playTapSound();
   clearInterval(timerInterval);
   if (audio) audio.pause();
   goPage("savedQuizPage");

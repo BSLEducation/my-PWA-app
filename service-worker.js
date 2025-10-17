@@ -6,7 +6,8 @@ const ASSETS = [
   'script.js',
   'manifest.json',
   'icons/icon-192x192.png',
-  'icons/icon-512x512.png'
+  'icons/icon-512x512.png',
+  'tap.mp3'
 ];
 
 // Install event - cache all static assets

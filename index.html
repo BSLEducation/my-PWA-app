@@ -21,8 +21,8 @@
 
     <!-- Home Page -->
     <div id="homePage" class="page">
-      <button onclick="goPage('newQuizPage')">New Matching Quiz Set</button>
-      <button onclick="goPage('savedQuizPage')">Saved Quiz Sets</button>
+      <button onclick="playTapSound(); goPage('newQuizPage')">New Matching Quiz Set</button>
+      <button onclick="playTapSound(); goPage('savedQuizPage')">Saved Quiz Sets</button>
     </div>
 
     <!-- New Quiz Page -->
@@ -30,28 +30,31 @@
       <h2>Create New Matching Quiz Set</h2>
       <textarea id="quizInput" placeholder="Enter pairs: Left,Right (one per line)"></textarea>
       <br>
-      <button onclick="makeQuiz()">Make Quiz</button>
-      <button onclick="editQuiz()">Edit</button>
-      <button onclick="saveQuiz()">Save</button>
-      <button onclick="importCSV()">Import CSV</button>
-      <button onclick="exportCSV()">Export CSV</button>
-      <br><button onclick="goPage('homePage')">Back</button>
+      <button onclick="playTapSound(); makeQuiz()">Make Quiz</button>
+      <button onclick="playTapSound(); editQuiz()">Edit</button>
+      <button onclick="playTapSound(); saveQuiz()">Save</button>
+      <button onclick="playTapSound(); importCSV()">Import CSV</button>
+      <button onclick="playTapSound(); exportCSV()">Export CSV</button>
+      <br><button onclick="playTapSound(); goPage('homePage')">Back</button>
     </div>
 
     <!-- Saved Quiz Page -->
     <div id="savedQuizPage" class="page hidden">
       <h2>Saved Quiz Sets</h2>
-      <select id="quizList"></select>
+      <select id="quizList" onchange="playTapSound()"></select>
       <br>
-      <button onclick="editSavedQuiz()">Edit</button>
-      <button onclick="saveQuiz()">Save</button>
-      <button onclick="deleteQuiz()">Delete</button>
-      <button onclick="playQuiz()">Play</button>
+      <button onclick="playTapSound(); editSavedQuiz()">Edit</button>
+      <button onclick="playTapSound(); saveQuiz()">Save</button>
+      <button onclick="playTapSound(); deleteQuiz()">Delete</button>
+      <button onclick="playTapSound(); playQuiz()">Play</button>
       <br><br>
-      <label>Background Image: <input type="file" id="bgImageInput" onchange="setBackgroundImage(event)"></label><br>
-      <label>Background Sound: <input type="file" id="bgSoundInput" onchange="setBackgroundSound(event)"></label><br>
-      <label>Countdown (sec): <input type="number" id="countdownInput" value="30"></label>
-      <br><button onclick="goPage('homePage')">Back</button>
+      <label>Background Image: <input type="file" id="bgImageInput" onchange="playTapSound(); setBackgroundImage(event)"></label><br>
+      <label>Background Sound: <input type="file" id="bgSoundInput" onchange="playTapSound(); setBackgroundSound(event)"></label><br>
+      <label>Last 10s Sound: <input type="file" id="countdownSoundInput" onchange="playTapSound(); setCountdownSound(event)"></label><br>
+      <label>Countdown (sec): <input type="number" id="countdownInput" value="30" onchange="playTapSound()"></label>
+      <br>
+      <button onclick="playTapSound(); saveSettings()" style="background: #4CAF50">Save Settings</button>
+      <button onclick="playTapSound(); goPage('homePage')">Back</button>
     </div>
 
     <!-- Play Quiz Page -->
